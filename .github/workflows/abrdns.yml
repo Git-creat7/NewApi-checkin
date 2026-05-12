@@ -1,10 +1,10 @@
-name: boxying-checkin
+name: abrdns-checkin
 
 on:
-  workflow_dispatch: # 支持手动点击运行
+  workflow_dispatch:
   schedule:
     # 北京时间 9:00-12:00 对应 UTC 1:00-4:00
-    # 每小时触发一次，再随机延迟 0-180 分钟
+    # 在每个小时的 0 分触发，再由脚本随机延迟
     - cron: '0 1 * * *'
     - cron: '0 2 * * *'
     - cron: '0 3 * * *'
@@ -36,10 +36,8 @@ jobs:
 
       - name: Run Script
         env:
-          # 从 GitHub Secrets 中读取敏感信息
-          BOXYING_SESSION: ${{ secrets.BOXYING_SESSION }}
-          BOXYING_API_USER: ${{ secrets.BOXYING_API_USER }}
+          ABRDNS_SESSION: ${{ secrets.ABRDNS_SESSION }}
+          ABRDNS_API_USER: ${{ secrets.ABRDNS_API_USER }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
-          # 如果你的脚本还需要其他变量（如 BASE_URL），也加在这里
-          BOXYING_BASE_URL: "https://www.boxying.com/"
-        run: python checkin/boxying/checkin.py
+          ABRDNS_BASE_URL: "https://new-api.abrdns.com"
+        run: python checkin/abrdns/checkin.py

@@ -1,7 +1,7 @@
-name: boxying-checkin
+name: aini8-checkin
 
 on:
-  workflow_dispatch: # 支持手动点击运行
+  workflow_dispatch:
   schedule:
     # 北京时间 9:00-12:00 对应 UTC 1:00-4:00
     # 每小时触发一次，再随机延迟 0-180 分钟
@@ -36,10 +36,8 @@ jobs:
 
       - name: Run Script
         env:
-          # 从 GitHub Secrets 中读取敏感信息
-          BOXYING_SESSION: ${{ secrets.BOXYING_SESSION }}
-          BOXYING_API_USER: ${{ secrets.BOXYING_API_USER }}
+          AINI8_SESSION: ${{ secrets.AINI8_SESSION }}
+          AINI8_API_USER: ${{ secrets.AINI8_API_USER }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
-          # 如果你的脚本还需要其他变量（如 BASE_URL），也加在这里
-          BOXYING_BASE_URL: "https://www.boxying.com/"
-        run: python checkin/boxying/checkin.py
+          AINI8_BASE_URL: "https://api.aini8.com"
+        run: python checkin/aini8/checkin.py
