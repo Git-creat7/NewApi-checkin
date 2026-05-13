@@ -7,10 +7,10 @@
 | 平台 | 脚本路径 | 认证方式 | 主要环境变量 |
 |:-----|:--------|:--------|:------------|
 | [Boxying](https://www.boxying.com/register?aff=henf) | `checkin/boxying/checkin.py` | Session Cookie | `BOXYING_SESSION` `BOXYING_API_USER` |
-| [ABRDNS](https://new-api.abrdns.com) | `checkin/abrdns/checkin.py` | 令牌 | `ABRDNS_ACCESS_TOKEN` `ABRDNS_API_USER` |
-| [AINI8](https://api.aini8.com) | `checkin/aini8/checkin.py` | 令牌 | `AINI8_ACCESS_TOKEN` `AINI8_API_USER` |
-| [Elysiver](https://elysiver.h-e.top) | `checkin/elysiver/checkin.py` | 令牌 | `ELYSIVER_ACCESS_TOKEN` `ELYSIVER_API_USER` |
-| [Huan666](http://ai.huan666.de) | `checkin/huan666/checkin.py` | 令牌/Session | `HUAN666_ACCESS_TOKEN` `HUAN666_SESSION` `HUAN666_API_USER` |
+| [ABRDNS](https://new-api.abrdns.com/register?aff=u50m) | `checkin/abrdns/checkin.py` | 令牌 | `ABRDNS_ACCESS_TOKEN` `ABRDNS_API_USER` |
+| [AINI8](https://api.aini8.com/register?aff=7pbI) | `checkin/aini8/checkin.py` | 令牌 | `AINI8_ACCESS_TOKEN` `AINI8_API_USER` |
+| [Elysiver](https://elysiver.h-e.top/register?aff=vGW7) | `checkin/elysiver/checkin.py` | 令牌 | `ELYSIVER_ACCESS_TOKEN` `ELYSIVER_API_USER` |
+| [Huan666]((https://ai.huan666.de/register?aff=981F)) | `checkin/huan666/checkin.py` | 令牌/Session | `HUAN666_ACCESS_TOKEN` `HUAN666_SESSION` `HUAN666_API_USER` |
 | [XEM](http://new.xem8k5.top:3000/register?aff=Byib) | `checkin/xem/checkin.py` | 令牌/Session | `XEM_SYSTEM_ACCESS_TOKEN` `XEM_SESSION` `XEM_API_USER` |
 
 ## 运行环境
