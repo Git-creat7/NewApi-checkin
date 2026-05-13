@@ -1,42 +1,42 @@
 
-name: aini8-checkin
+# name: aini8-checkin
 
-on:
-  workflow_dispatch:
-  schedule:
-    # 北京时间 9:00-12:00 对应 UTC 1:00-4:00
-    # 每小时触发一次，再随机延迟 0-180 分钟
-    - cron: '0 1 * * *'
-    - cron: '0 2 * * *'
-    - cron: '0 3 * * *'
-    - cron: '0 4 * * *'
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     # 北京时间 9:00-12:00 对应 UTC 1:00-4:00
+#     # 每小时触发一次，再随机延迟 0-180 分钟
+#     - cron: '0 1 * * *'
+#     - cron: '0 2 * * *'
+#     - cron: '0 3 * * *'
+#     - cron: '0 4 * * *'
 
-jobs:
-  checkin:
-    runs-on: ubuntu-latest
+# jobs:
+#   checkin:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+#       - name: Install dependencies
+#         run: |
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
 
-      - name: Random delay (0-180 min)
-        run: |
-          DELAY=$(python3 -c "import random; print(random.randint(0, 180))")
-          echo "随机延迟 $DELAY 分钟"
-          sleep $DELAY
+#       - name: Random delay (0-180 min)
+#         run: |
+#           DELAY=$(python3 -c "import random; print(random.randint(0, 180))")
+#           echo "随机延迟 $DELAY 分钟"
+#           sleep $DELAY
 
-      - name: Run Script
-        env:
-          AINI8_ACCESS_TOKEN: ${{ secrets.AINI8_ACCESS_TOKEN }}
-          AINI8_API_USER: ${{ secrets.AINI8_API_USER }}
-        run: python checkin/aini8/checkin.py
+#       - name: Run Script
+#         env:
+#           AINI8_ACCESS_TOKEN: ${{ secrets.AINI8_ACCESS_TOKEN }}
+#           AINI8_API_USER: ${{ secrets.AINI8_API_USER }}
+#         run: python checkin/aini8/checkin.py
