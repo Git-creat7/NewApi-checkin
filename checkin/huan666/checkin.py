@@ -1,5 +1,5 @@
-# 本地重复签到测试：token测试通过
-
+# session
+# 本地重复签到测试：token测试❌ session测试✅
 #!/usr/bin/env python3
 import os
 import sys
@@ -10,29 +10,53 @@ if sys.platform == "win32":
     sys.stderr.reconfigure(encoding="utf-8")
 
 from curl_cffi import requests
+from urllib.parse import urlparse
 
 
-BASE_URL = os.getenv("AINI8_BASE_URL", "https://api.aini8.com").rstrip("/")
-ACCESS_TOKEN = os.getenv("AINI8_ACCESS_TOKEN", "").strip()
-API_USER = os.getenv("AINI8_API_USER", "").strip()
-TIMEOUT = int(os.getenv("AINI8_TIMEOUT", "30"))
+BASE_URL = os.getenv("HUAN666_BASE_URL", "http://ai.huan666.de").rstrip("/")
+ACCESS_TOKEN = os.getenv("HUAN666_ACCESS_TOKEN", "").strip()
+SESSION = os.getenv("HUAN666_SESSION", "").strip()
+API_USER = os.getenv("HUAN666_API_USER", "").strip()
+TIMEOUT = int(os.getenv("HUAN666_TIMEOUT", "30"))
 
 
 class ApiError(RuntimeError):
     pass
 
 
-def make_session() -> requests.Session:
+def make_session_with_token() -> requests.Session:
     if not ACCESS_TOKEN:
-        raise ApiError("AINI8_ACCESS_TOKEN is required.")
+        raise ApiError("HUAN666_ACCESS_TOKEN is required.")
     if not API_USER:
-        raise ApiError("AINI8_API_USER is required.")
+        raise ApiError("HUAN666_API_USER is required.")
 
     session = requests.Session(impersonate="chrome124", timeout=TIMEOUT)
     session.headers.update(
         {
             "Accept": "application/json, text/plain, */*",
             "Authorization": f"Bearer {ACCESS_TOKEN}",
+            "new-api-user": API_USER,
+            "Origin": BASE_URL,
+            "Referer": f"{BASE_URL}/console",
+        }
+    )
+    return session
+
+
+def make_session_with_cookie() -> requests.Session:
+    if not SESSION:
+        raise ApiError("HUAN666_SESSION is required.")
+    if not API_USER:
+        raise ApiError("HUAN666_API_USER is required.")
+
+    domain = urlparse(BASE_URL).netloc
+    session = requests.Session(impersonate="chrome124", timeout=TIMEOUT)
+    session.cookies.set("session", SESSION, domain=domain)
+    session.headers.update(
+        {
+            "Accept": "application/json, text/plain, */*",
+            "Content-Type": "application/json",
+            "Cookie": f"session={SESSION}",
             "new-api-user": API_USER,
             "Origin": BASE_URL,
             "Referer": f"{BASE_URL}/console",
@@ -61,9 +85,7 @@ def post_checkin(session: requests.Session) -> dict:
     return ensure_json(session.post(f"{BASE_URL}/api/user/checkin"), "签到")
 
 
-def main() -> int:
-    session = make_session()
-
+def run_once(session: requests.Session) -> int:
     user = fetch_self(session)
     print(f"当前账号: id={user.get('id')} name={user.get('display_name')}")
 
@@ -90,6 +112,25 @@ def main() -> int:
     else:
         print(f"✅ 签到成功: {message or result}")
     return 0
+
+
+def main() -> int:
+    # 优先令牌，回退 session cookie
+    if ACCESS_TOKEN:
+        print("🔑 使用令牌认证")
+        try:
+            return run_once(make_session_with_token())
+        except ApiError as exc:
+            print(f"⚠️ 令牌认证失败: {exc}")
+            if not SESSION:
+                raise
+            print("🔄 回退到 session cookie...")
+
+    if not SESSION:
+        raise ApiError("未配置 HUAN666_ACCESS_TOKEN 或 HUAN666_SESSION，无法认证。")
+
+    print("🍪 使用 session cookie 认证")
+    return run_once(make_session_with_cookie())
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
-
-name: aini8-checkin
+name: huan666-checkin
 
 on:
   workflow_dispatch:
@@ -37,6 +36,7 @@ jobs:
 
       - name: Run Script
         env:
-          AINI8_ACCESS_TOKEN: ${{ secrets.AINI8_ACCESS_TOKEN }}
-          AINI8_API_USER: ${{ secrets.AINI8_API_USER }}
-        run: python checkin/aini8/checkin.py
+          HUAN666_ACCESS_TOKEN: ${{ secrets.HUAN666_ACCESS_TOKEN }}
+          HUAN666_SESSION: ${{ secrets.HUAN666_SESSION }}
+          HUAN666_API_USER: ${{ secrets.HUAN666_API_USER }}
+        run: python checkin/huan666/checkin.py

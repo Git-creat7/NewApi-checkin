@@ -1,14 +1,22 @@
+# token
+# 本地重复签到测试：token测试通过
 #!/usr/bin/env python3
 import os
 import sys
 from datetime import datetime, timezone
 
+# Windows 控制台 UTF-8 输出
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
 from curl_cffi import requests
 
 
-BASE_URL = os.getenv("XEM_BASE_URL", "http://new.xem8k5.top:3000/").rstrip("/")
+BASE_URL = os.getenv("XEM_BASE_URL", "http://new.xem8k5.top:3000").rstrip("/")
 SESSION = os.getenv("XEM_SESSION", "").strip()
 API_USER = os.getenv("XEM_API_USER", "").strip()
+SYSTEM_ACCESS_TOKEN = os.getenv("XEM_SYSTEM_ACCESS_TOKEN", "").strip()
 # 推送环境变量
 PUSH_KEY = os.getenv("PUSH_KEY", "").strip()
 TIMEOUT = int(os.getenv("XEM_TIMEOUT", "30"))
@@ -41,20 +49,40 @@ def send_pushplus(title: str, content: str) -> None:
         print(f"PushPlus send failed: {exc}", file=sys.stderr)
 
 
-def current_month() -> str:
-    return datetime.now(timezone.utc).astimezone().strftime("%Y-%m")
-
-
 def current_day() -> str:
     return datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
 
 
-def make_session(include_api_user: bool = True) -> requests.Session:
+def make_session_with_token() -> requests.Session:
+    """使用 system_access_token 认证"""
+    if not SYSTEM_ACCESS_TOKEN:
+        raise ApiError("XEM_SYSTEM_ACCESS_TOKEN is required.")
+    if not API_USER:
+        raise ApiError("XEM_API_USER is required when using system_access_token.")
+
+    session = requests.Session(impersonate="chrome124", timeout=TIMEOUT)
+    session.headers.update(
+        {
+            "Accept": "application/json, text/plain, */*",
+            "Authorization": f"Bearer {SYSTEM_ACCESS_TOKEN}",
+            "new-api-user": API_USER,
+            "Origin": BASE_URL,
+            "Referer": f"{BASE_URL}/console",
+        }
+    )
+    return session
+
+
+def make_session_with_cookie(include_api_user: bool = True) -> requests.Session:
+    """使用 session cookie 认证"""
     if not SESSION:
         raise ApiError("XEM_SESSION is required.")
 
+    from urllib.parse import urlparse
+    domain = urlparse(BASE_URL).netloc
+
     session = requests.Session(impersonate="chrome124", timeout=TIMEOUT)
-    session.cookies.set("session", SESSION, domain="www.xem8k5.top")
+    session.cookies.set("session", SESSION, domain=domain)
     session.headers.update(
         {
             "Accept": "application/json, text/plain, */*",
@@ -104,64 +132,26 @@ def fetch_self(session: requests.Session) -> dict:
 
 def fetch_checkin_status(session: requests.Session) -> dict:
     response = session.get(f"{BASE_URL}/api/user/checkin")
-    # 典型返回: {"success":true, "message":"...", "data": 100}
-    # 或者返回是否可以签到的布尔值
     return ensure_json_response(response, "XEM 签到状态响应")
 
 
-def post_checkin(session: requests.Session, status: dict | None = None) -> dict:
-    # 经典路径通常不需要 seed/proof，直接 POST 即可
+def post_checkin(session: requests.Session) -> dict:
     response = session.post(f"{BASE_URL}/api/user/checkin")
     return ensure_json_response(response, "XEM 签到动作响应")
 
 
-def extract_stats(status: dict) -> dict:
-    return ((status.get("data") or {}).get("stats") or {})
-
-
-def extract_today_reward(status: dict) -> int | None:
-    today = current_day()
-    stats = extract_stats(status)
-    records = stats.get("records") or []
-    for record in records:
-        if record.get("checkin_date") == today:
-            try:
-                return int(record.get("quota_awarded"))
-            except (TypeError, ValueError):
-                return None
-    return None
-
-
-def run_once(include_api_user: bool) -> int:
-    session = make_session(include_api_user=include_api_user)
-
+def run_once(session: requests.Session) -> int:
     site_status = fetch_site_status(session)
     if not site_status.get("checkin_enabled"):
         print("ℹ️ 签到功能未开启")
         return 0
     if site_status.get("turnstile_check"):
-        print("⚠️ 站点启用了 Turnstile，继续尝试使用现有 session 签到...")
+        print("⚠️ 站点启用了 Turnstile，继续尝试签到...")
 
     user = fetch_self(session)
     print(f"当前账号: id={user.get('id')} display_name={user.get('display_name')}")
 
-    status = fetch_checkin_status(session)
-    if status.get("success"):
-        data = status.get("data") or {}
-        stats = data.get("stats") or {}
-        if stats.get("checked_in_today"):
-            print(
-                f"✅ 今日已签到，累计={stats.get('total_checkins')}，总额度={stats.get('total_quota')/500000}"
-            )
-            return 0
-        if data.get("can_checkin") is False:
-            raise ApiError(
-                f"当前账号未达到签到门槛: current_topup_amount={data.get('current_topup_amount')} "
-                f"min_topup_amount={data.get('min_topup_amount')}"
-            )
-    before_total_quota = extract_stats(status).get("total_quota")
-
-    result = post_checkin(session, status=status)
+    result = post_checkin(session)
     message = result.get("message") or result.get("msg") or ""
     success = bool(result.get("success") or result.get("ret") == 1)
 
@@ -175,30 +165,51 @@ def run_once(include_api_user: bool) -> int:
     if not success:
         raise ApiError(message or "Check-in failed.")
 
-    refreshed_status = fetch_checkin_status(session)
-    after_stats = extract_stats(refreshed_status)
-    today_awarded = extract_today_reward(refreshed_status)
-    after_total_quota = after_stats.get("total_quota")
-
-    if today_awarded is None:
+    # 默认接口 data 直接返回奖励额度
+    reward = result.get("data")
+    if reward is not None:
         try:
-            if before_total_quota is not None and after_total_quota is not None:
-                today_awarded = int(after_total_quota) - int(before_total_quota)
+            reward = int(reward)
         except (TypeError, ValueError):
-            today_awarded = None
+            reward = None
 
-    if today_awarded is not None:
-        print(
-            f"✅ 签到成功！今日奖励={today_awarded}，累计签到={after_stats.get('total_checkins')}，累计获得={after_total_quota}"
-        )
+    if reward is not None:
+        print(f"✅ 签到成功！今日奖励={reward}")
     else:
         print(f"✅ 签到成功: {message or result}")
     return 0
 
 
 def main() -> int:
+    # 优先使用 system_access_token，回退到 session cookie
+    if SYSTEM_ACCESS_TOKEN:
+        print("🔑 使用 system_access_token 认证")
+        try:
+            session = make_session_with_token()
+            code = run_once(session)
+            send_pushplus(
+                "XEM 签到结果",
+                f"### XEM 签到成功\n\n- 站点: `{BASE_URL}`\n- 时间: `{current_day()}`\n- 认证: `system_access_token`",
+            )
+            return code
+        except ApiError as exc:
+            msg = str(exc)
+            print(f"⚠️ system_access_token 认证失败: {msg}")
+            if not SESSION:
+                send_pushplus(
+                    "XEM 签到失败",
+                    f"### XEM 签到失败\n\n- 站点: `{BASE_URL}`\n- 时间: `{current_day()}`\n- 认证: `system_access_token`\n- 错误: `{msg}`",
+                )
+                raise
+            print("🔄 回退到 session cookie 认证...")
+
+    if not SESSION:
+        raise ApiError("未配置 XEM_SYSTEM_ACCESS_TOKEN 或 XEM_SESSION，无法认证。")
+
+    print("🍪 使用 session cookie 认证")
     try:
-        code = run_once(include_api_user=True)
+        session = make_session_with_cookie(include_api_user=True)
+        code = run_once(session)
         send_pushplus(
             "XEM 签到结果",
             f"### XEM 签到成功\n\n- 站点: `{BASE_URL}`\n- 时间: `{current_day()}`",
@@ -208,7 +219,8 @@ def main() -> int:
         msg = str(exc)
         if API_USER and "insufficient privileges" in msg.lower():
             print("⚠️ 使用 new-api-user 头失败，尝试仅凭 session 重试一次...")
-            code = run_once(include_api_user=False)
+            session = make_session_with_cookie(include_api_user=False)
+            code = run_once(session)
             send_pushplus(
                 "XEM 签到结果",
                 f"### XEM 签到成功\n\n- 站点: `{BASE_URL}`\n- 时间: `{current_day()}`\n- 备注: `new-api-user` 回退为仅使用 session",

@@ -1,3 +1,4 @@
+
 # 本地重复签到测试：token测试通过
 
 #!/usr/bin/env python3
@@ -12,10 +13,10 @@ if sys.platform == "win32":
 from curl_cffi import requests
 
 
-BASE_URL = os.getenv("AINI8_BASE_URL", "https://api.aini8.com").rstrip("/")
-ACCESS_TOKEN = os.getenv("AINI8_ACCESS_TOKEN", "").strip()
-API_USER = os.getenv("AINI8_API_USER", "").strip()
-TIMEOUT = int(os.getenv("AINI8_TIMEOUT", "30"))
+BASE_URL = os.getenv("ELYSIVER_BASE_URL", "https://elysiver.h-e.top").rstrip("/")
+ACCESS_TOKEN = os.getenv("ELYSIVER_ACCESS_TOKEN", "").strip()
+API_USER = os.getenv("ELYSIVER_API_USER", "").strip()
+TIMEOUT = int(os.getenv("ELYSIVER_TIMEOUT", "30"))
 
 
 class ApiError(RuntimeError):
@@ -24,9 +25,9 @@ class ApiError(RuntimeError):
 
 def make_session() -> requests.Session:
     if not ACCESS_TOKEN:
-        raise ApiError("AINI8_ACCESS_TOKEN is required.")
+        raise ApiError("ELYSIVER_ACCESS_TOKEN is required.")
     if not API_USER:
-        raise ApiError("AINI8_API_USER is required.")
+        raise ApiError("ELYSIVER_API_USER is required.")
 
     session = requests.Session(impersonate="chrome124", timeout=TIMEOUT)
     session.headers.update(
